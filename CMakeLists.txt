@@ -114,4 +114,10 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_jd8_velocity.cpp)
     target_link_libraries(test_jd8_velocity draco4_ethercat)
 endif()
 
+# EtherCAT diagnostic test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_ethercat_diagnostic.cpp)
+    add_executable(test_ethercat_diagnostic tests/test_ethercat_diagnostic.cpp)
+    target_link_libraries(test_ethercat_diagnostic draco4_ethercat)
+endif()
+
 

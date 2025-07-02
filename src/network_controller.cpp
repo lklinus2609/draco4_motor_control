@@ -88,10 +88,6 @@ bool NetworkController::scanNetwork() {
         
         std::cout << "Network scan complete: found " << detected_slaves << " EtherCAT slaves" << std::endl;
         
-        if (detected_slaves > 0) {
-            initializeSlaveInfo();
-        }
-        
         clearError();
         return true;
         
@@ -129,6 +125,11 @@ bool NetworkController::configureSlaves() {
         // Configure distributed clocks if supported
         ec_configdc();
         
+        // Initialize slave info after mapping (PDO sizes now available)
+        if (slave_count_.load() > 0) {
+            initializeSlaveInfo();
+        }
+        
         // Setup PDO pointers for all slaves
         if (!setupPDOPointers()) {
             setError("Failed to setup PDO pointers");
@@ -160,22 +161,54 @@ bool NetworkController::startOperation() {
     std::cout << "Starting EtherCAT network operation..." << std::endl;
     
     try {
-        // Request all slaves to go to operational state
+        // Initialize output data with safe values (simplified from old working code)
+        std::cout << "Initializing output data with safe values..." << std::endl;
+        {
+            std::lock_guard<std::mutex> lock(slaves_mutex_);
+            for (auto& slave : slaves_) {
+                if (slave.output_pdo != nullptr) {
+                    // Initialize with CIA402 compliant control word for SOMANET
+                    slave.output_pdo->controlword = 0x0006;          // CIA402 Shutdown state
+                    slave.output_pdo->modes_of_operation = 0x00;      // No operation mode
+                    slave.output_pdo->target_torque = 0;             // Zero torque
+                    slave.output_pdo->target_position = 0;           // Zero position
+                    slave.output_pdo->target_velocity = 0;           // Zero velocity  
+                    slave.output_pdo->torque_offset = 0;             // Zero offset
+                    slave.output_pdo->tuning_command = 0;            // No tuning
+                    slave.output_pdo->physical_outputs = 0;          // All outputs off
+                    slave.output_pdo->bit_mask = 0;                  // No mask
+                    slave.output_pdo->user_mosi = 0;                 // User data clear
+                    slave.output_pdo->velocity_offset = 0;           // Zero offset
+                }
+            }
+        }
+        
+        // Request operational state (direct transition like old working code)
+        std::cout << "Request operational state for all slaves" << std::endl;
         ec_slave[0].state = EC_STATE_OPERATIONAL;
+        ec_send_processdata();
+        ec_receive_processdata(EC_TIMEOUTRET);
         ec_writestate(0);
         
-        // Wait for all slaves to reach operational state
-        int timeout_us = 5000000; // 5 seconds
-        int state_check_result = ec_statecheck(0, EC_STATE_OPERATIONAL, timeout_us);
+        int chk = 200;
+        do {
+            ec_send_processdata();
+            ec_receive_processdata(EC_TIMEOUTRET);
+            ec_statecheck(0, EC_STATE_OPERATIONAL, 50000);
+        } while (chk-- && (ec_slave[0].state != EC_STATE_OPERATIONAL));
         
-        if (state_check_result != EC_STATE_OPERATIONAL) {
-            setError("Failed to reach operational state (state: 0x" + 
-                    std::to_string(state_check_result) + ")");
+        if (ec_slave[0].state == EC_STATE_OPERATIONAL) {
+            std::cout << "Operational state reached for all slaves" << std::endl;
+        } else {
+            setError("Not all slaves reached operational state");
             return false;
         }
         
         // Calculate expected working counter
         expected_wkc_.store((ec_group[0].outputsWKC * 2) + ec_group[0].inputsWKC);
+        
+        // Set operational flag before performing communication
+        operational_.store(true);
         
         // Perform initial communication cycle
         int wkc = performCommunicationCycle();
@@ -184,8 +217,6 @@ bool NetworkController::startOperation() {
             std::cout << "Warning: Working counter lower than expected (got: " 
                       << wkc << ", expected: " << expected_wkc_.load() << ")" << std::endl;
         }
-        
-        operational_.store(true);
         std::cout << "EtherCAT network operational (WKC: " << wkc 
                   << "/" << expected_wkc_.load() << ")" << std::endl;
         
@@ -520,6 +551,48 @@ std::vector<DetectedMotorInfo> NetworkController::getAllDetectedMotors() const {
 
 const MotorManager* NetworkController::getMotorManager() const {
     return motor_manager_.get();
+}
+
+bool NetworkController::flushControlWordUpdate(int slave_index) {
+    if (!operational_.load()) {
+        return false;
+    }
+    
+    if (!isValidSlaveIndex(slave_index)) {
+        return false;
+    }
+    
+    try {
+        // Immediately send process data to slaves
+        ec_send_processdata();
+        
+        // Receive process data with short timeout to verify response
+        int wkc = ec_receive_processdata(1000); // 1ms timeout
+        
+        // Update statistics
+        actual_wkc_.store(wkc);
+        
+        // Verify we got expected response
+        if (wkc >= expected_wkc_.load()) {
+            return true;
+        } else {
+            return false;
+        }
+        
+    } catch (const std::exception& e) {
+        return false;
+    }
+}
+
+// Helper function to convert EtherCAT state to string
+std::string NetworkController::getStateString(uint16_t state) const {
+    switch (state) {
+        case 0x01: return "INIT";
+        case 0x02: return "PREOP"; 
+        case 0x04: return "SAFEOP";
+        case 0x08: return "OPERATIONAL";
+        default: return "UNKNOWN(0x" + std::to_string(state) + ")";
+    }
 }
 
 } // namespace synapticon_motor

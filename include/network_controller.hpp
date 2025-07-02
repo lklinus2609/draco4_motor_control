@@ -207,6 +207,14 @@ public:
     bool checkSlaveStates();
     
     /**
+     * @brief Immediately flush control word update to specific slave
+     * @param slave_index EtherCAT slave index (1-based)
+     * @return true if flush successful and slave responded
+     * @note Used for critical control word changes that need immediate transmission
+     */
+    bool flushControlWordUpdate(int slave_index);
+    
+    /**
      * @brief Check for communication errors
      * @return true if communication errors detected
      */
@@ -292,6 +300,13 @@ private:
      * @return true if PDO setup successful
      */
     bool setupPDOPointers();
+    
+    /**
+     * @brief Convert EtherCAT state to string representation
+     * @param state EtherCAT state value
+     * @return String representation of state
+     */
+    std::string getStateString(uint16_t state) const;
     
     /**
      * @brief Validate slave index

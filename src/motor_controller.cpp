@@ -427,31 +427,39 @@ int MotorController::enable_motor_sequence() {
             }
             return 1;
             
-        case 1:
+        case 1: {
             output_pdo->controlword = MotorConstants::CONTROLWORD_SHUTDOWN;
-            if ((status & MotorConstants::STATUSWORD_STATE_MASK) == MotorConstants::STATUSWORD_READY_TO_SWITCH_ON) {
+            network_->flushControlWordUpdate(slave_index_);
+            
+            uint16_t masked_status = status & MotorConstants::STATUSWORD_STATE_MASK;
+            if (masked_status == MotorConstants::STATUSWORD_READY_TO_SWITCH_ON) {
                 return 2;
             }
             return 1;
+        }
             
-        case 2:
+        case 2: {
             output_pdo->controlword = MotorConstants::CONTROLWORD_SWITCH_ON;
             output_pdo->modes_of_operation = MotorConstants::VELOCITY_MODE;
+            network_->flushControlWordUpdate(slave_index_);
+            
             if ((status & MotorConstants::STATUSWORD_STATE_MASK) == MotorConstants::STATUSWORD_SWITCHED_ON) {
                 return 3;
             }
             return 2;
+        }
             
-        case 3:
+        case 3: {
             output_pdo->controlword = MotorConstants::CONTROLWORD_ENABLE_OPERATION;
             output_pdo->modes_of_operation = MotorConstants::VELOCITY_MODE;
+            network_->flushControlWordUpdate(slave_index_);
             
             if ((status & MotorConstants::STATUSWORD_STATE_MASK) == MotorConstants::STATUSWORD_OPERATION_ENABLED_VALUE) {
                 motor_enabled_ = true;
-                std::cout << "Motor enable detected: status=0x" << std::hex << status << ", masked=0x" << (status & MotorConstants::STATUSWORD_STATE_MASK) << std::dec << std::endl;
                 return 4;
             }
             return 3;
+        }
             
         default:
             return 4;

@@ -33,3 +33,64 @@ Thumbs.db
 
 # Log files
 *.log
+
+# EtherCAT and Motor Control specific
+*.pcap
+*.pcapng
+*.cap
+captures/
+logs/
+
+# Configuration backups and temporary configs
+*.csv.bak
+*.cfg.bak
+config/*.backup
+config/temp_*
+
+# Robot calibration and runtime data
+calibration_data/
+robot_logs/
+motion_data/
+*.trajectory
+*.calib
+
+# Documentation builds
+docs/_build/
+docs/build/
+*.pdf
+!docs/**/*.pdf
+
+# Testing artifacts
+test_results/
+coverage/
+*.gcov
+*.gcda
+*.gcno
+
+# Core dumps and crash files
+core
+core.*
+*.dump
+crash_*
+
+# Python cache (if using Python tools)
+__pycache__/
+*.pyc
+*.pyo
+
+# Jupyter notebooks checkpoints
+.ipynb_checkpoints/
+
+# Environment files
+.env
+.env.local
+secrets.txt
+
+# Claude Code local configuration
+CLAUDE.local.md
+*.local.md
+
+# Backup/reference directories
+draco4-old/
+*-old/
+*-backup/
