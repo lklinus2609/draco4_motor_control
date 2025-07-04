@@ -1,7 +1,7 @@
 # API Reference
 
 ---
-[Home](index.md) | [API Reference](api-reference.md) | [Developer Guide](developer-guide.md) | [Usage Examples](usage-examples.md)
+[Home](index.md) | [API Reference](api-reference.md) | [Developer Guide](developer-guide.md) | [Code Analysis](code-analysis.md) | [Usage Examples](usage-examples.md)
 ---
 
 ## NetworkController

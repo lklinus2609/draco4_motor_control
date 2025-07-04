@@ -1,7 +1,7 @@
 # Draco4 Multi-Motor EtherCAT Control Framework
 
 ---
-[Home](index.md) | [API Reference](api-reference.md) | [Developer Guide](developer-guide.md) | [Usage Examples](usage-examples.md)
+[Home](index.md) | [API Reference](api-reference.md) | [Developer Guide](developer-guide.md) | [Code Analysis](code-analysis.md) | [Usage Examples](usage-examples.md)
 ---
 
 A high-performance C++ framework for controlling multiple servo motors via EtherCAT communication using the SOEM (Simple Open EtherCAT Master) library. Supports single and multi-network architectures for complex robotic systems.
@@ -105,4 +105,5 @@ motor.uploadConfig();  // Upload to motor via SDO
 
 - **[API Reference](api-reference.md)** - Complete API documentation for all classes and methods
 - **[Developer Guide](developer-guide.md)** - Comprehensive development guide and troubleshooting
+- **[Code Analysis](code-analysis.md)** - Detailed function-level analysis and system architecture documentation
 - [Usage Examples](usage-examples.md) - Additional code examples
